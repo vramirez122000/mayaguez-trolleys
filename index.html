@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Mapa de trolleys del Municipio de Mayag&uuml;ez</title>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 0;
+            margin: 0;
+        }
+
+        .routeLabel {
+            font-weight: bold;
+            border-radius: 3px;
+            color: white;
+            padding: .1em .3em;
+            border: 1px solid;
+        }
+
+    </style>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+    <script type="text/javascript">
+
+        var DEFAULTS = {
+            CENTER: [18.2011, -67.1396],
+            ZOOM: 13,
+            MIN_ZOOM: 10,
+            MAX_ZOOM: 19,
+            BOUNDS: [[18.352687, -66.179752],[18.477284, -65.928097]],
+            ROUTE_COLOR_OPACITY: 0.65
+        };
+
+        var routeLayers = {};
+        var markerGroup = L.featureGroup();
+        var layerControl = L.control.layers(null, {});
+        var map;
+
+        $(document).ready(function() {
+
+            $('#map').css('height', window.innerHeight * 0.95);
+
+            map = L.map('map', {
+                center: DEFAULTS.CENTER,
+                zoom: DEFAULTS.ZOOM
+            });
+
+            var url = 'https://{s}.tiles.mapbox.com/v3/vramirez122000.kc4acpgn/{z}/{x}/{y}.png'; //mapquest
+            L.tileLayer(url, {
+                minZoom: DEFAULTS.MIN_ZOOM,
+                maxZoom: DEFAULTS.MAX_ZOOM,
+                maxBounds: DEFAULTS.BOUNDS,
+                attribution: '<a href="http://www.openstreetmap.org/" target="_blank">OpenStreetMap Contributors</a>'
+            }).addTo(map);
+
+            getAllRoutes();
+            layerControl.addTo(map);
+
+            getPoints();
+
+        });
+
+        function getAllRoutes() {
+            $.ajax('rutas.geojson', {
+                contentType: 'application/json; charset=UTF-8',
+                dataType: 'json',
+                success: function (geojsonRoutes) {
+                    for (var i = 0; i < geojsonRoutes.features.length; i++) {
+                        var data = geojsonRoutes.features[i];
+                        var geoJsonLayer = L.geoJson(data, {
+                            style: routeStyle,
+                            onEachFeature: onEachRoute
+                        });
+                        routeLayers[data.id] = geoJsonLayer;
+                        var darkColor = data.properties.color;
+                        var lightColor = shadeColor(data.properties.color, 100 - (DEFAULTS.ROUTE_COLOR_OPACITY * 100));
+                        var routeLabel = '<span class="routeLabel" style="' +
+                                'background-color: ' + lightColor +
+                                '; text-shadow: -1px 0 ' + darkColor + ', 0 1px ' + darkColor + ', 1px 0 ' + darkColor + ', 0 -1px ' + darkColor +
+                                '; border-color: ' + darkColor + '">' + (data.properties.nombre) + '</span>';
+                        geoJsonLayer.addTo(map);
+                        layerControl.addOverlay(geoJsonLayer, routeLabel);
+                    }
+                    markerGroup.getLayers().length && markerGroup.bringToFront();
+                    map.locate({setView: true, maxZoom: 13, enableHighAccuracy: true});
+                }
+            });
+        }
+
+        function getPoints() {
+            $.ajax('puntos.geojson', {
+                contentType: 'application/json; charset=UTF-8',
+                dataType: 'json',
+                success: function (geojson) {
+                    for (var i = 0; i < geojson.features.length; i++) {
+                        var data = geojson.features[i];
+                        var marker = L.circleMarker(data.geometry.coordinates.reverse(), {
+                            color: '#333333',
+                            fillColor: '#ffffff',
+                            fillOpacity: 9,
+                            radius: '5'
+                        });
+                        markerGroup.addLayer(marker);
+                    }
+                    markerGroup.addTo(map);
+                }
+            });
+        }
+
+
+        function routeStyle(feature) {
+            return {
+                weight: 6,
+                opacity: DEFAULTS.ROUTE_COLOR_OPACITY,
+                color: feature.properties.color
+            };
+        }
+
+        function onEachRoute(feature, layer) {
+            layer.bindPopup(feature.properties.nombre);
+            layer.on("click", function() {
+                layer.bringToFront();
+                markerGroup.bringToFront();
+            });
+        }
+
+        function shadeColor(color, percent) {
+            var num = parseInt(color.slice(1),16);
+            var amt = Math.round(2.55 * percent);
+            var R = (num >> 16) + amt;
+            var B = (num >> 8 & 0x00FF) + amt;
+            var G = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (B<255?B<1?0:B:255)*0x100 + (G<255?G<1?0:G:255))
+                            .toString(16).slice(1);
+        }
+
+    </script>
+</head>
+<body>
+<div style="font-size: large; font-weight: bold; margin: 0.2em; width: 100%; text-align: center">
+    Mapa de trolleys del Municipio de Mayag&uuml;ez
+</div>
+<div id="map" style="width: 100%; height: 800px;"></div>
+</body>
+</html>

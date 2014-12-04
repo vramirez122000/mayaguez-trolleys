@@ -34,22 +34,8 @@
 <script type="text/javascript" src="//cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
 <script type="text/javascript" src="mayatrolley.min.js"></script>
 <script type="text/javascript">
-
     $(document).ready(function() {
-
-        var mapState = {
-            routeLayers: {},
-            markerGroup: L.featureGroup(),
-            layerControl: L.control.layers(null, {}),
-            map: null
-        };
-
-        mapState.map = createMap();
-        tileLayer().addTo(mapState.map);
-        getAllRoutes(mapState);
-        mapState.layerControl.addTo(mapState.map);
-        getPoints(mapState);
-
+        main();
     });
 </script>
 </html>

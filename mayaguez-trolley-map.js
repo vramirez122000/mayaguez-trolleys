@@ -4,17 +4,20 @@ var DEFAULTS = {
     MIN_ZOOM: 10,
     MAX_ZOOM: 19,
     BOUNDS: [[18.352687, -66.179752],[18.477284, -65.928097]],
-    ROUTE_COLOR_OPACITY: 0.65
+    ROUTE_COLOR_OPACITY: 0.8
 };
 
-function shadeColor(color, percent) {
-    var num = parseInt(color.slice(1),16);
-    var amt = Math.round(2.55 * percent);
-    var R = (num >> 16) + amt;
-    var B = (num >> 8 & 0x00FF) + amt;
-    var G = (num & 0x0000FF) + amt;
-    return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (B<255?B<1?0:B:255)*0x100 + (G<255?G<1?0:G:255))
-            .toString(16).slice(1);
+function main() {
+    var mapState = {
+        colors: {},
+        markerGroup: L.featureGroup(),
+        layerControl: L.control.layers(null, {}, {position: 'topleft', collapsed: false}),
+        map: createMap(),
+        param : getParam('maptype')
+    };
+
+    tileLayer().addTo(mapState.map);
+    getAllRoutes(mapState);
 }
 
 function createMap() {
@@ -41,23 +44,32 @@ function getAllRoutes(mapState) {
         success: function (geojsonRoutes) {
             for (var i = 0; i < geojsonRoutes.features.length; i++) {
                 var data = geojsonRoutes.features[i];
+                if(mapState.param && data.properties.nombre.indexOf(mapState.param) == -1) {
+                    continue;
+                }
                 var geoJsonLayer = L.geoJson(data, {
-                    style: routeStyle,
-                    onEachFeature: onEachRoute
+                    style: createRouteStyleFunction(mapState),
+                    onEachFeature: createOnEachRouteFunction(mapState)
                 });
-                mapState.routeLayers[data.id] = geoJsonLayer;
-                var darkColor = data.properties.color;
-                var lightColor = shadeColor(data.properties.color, 100 - (DEFAULTS.ROUTE_COLOR_OPACITY * 100));
+                mapState.colors[data.properties.nombre] = data.properties.color;
+                var lightColor = data.properties.color;
+                var darkColor = shadeColor(data.properties.color, -25);
                 var routeLabel = '<span class="routeLabel" style="' +
                     'background-color: ' + lightColor +
                     '; text-shadow: -1px 0 ' + darkColor + ', 0 1px ' + darkColor + ', 1px 0 ' + darkColor + ', 0 -1px ' + darkColor +
                     '; border-color: ' + darkColor + '">' + (data.properties.nombre) + '</span>';
+
+                if(mapState.param == data.properties.nombre) {
+
+                }
                 geoJsonLayer.addTo(mapState.map);
                 mapState.layerControl.addOverlay(geoJsonLayer, routeLabel);
             }
             if(mapState.markerGroup.getLayers().length) {
                 mapState.markerGroup.bringToFront();
             }
+            mapState.layerControl.addTo(mapState.map);
+            getPoints(mapState);
             mapState.map.locate({setView: true, maxZoom: 13, enableHighAccuracy: true});
         }
     });
@@ -70,12 +82,18 @@ function getPoints(mapState) {
         success: function (geojson) {
             for (var i = 0; i < geojson.features.length; i++) {
                 var data = geojson.features[i];
+                var routeName = data.properties.text.substr(0, 2);
+                var color = mapState.colors[routeName];
+                var fillColor = color || '#ffffff';
+                var borderColor = color && shadeColor(fillColor, -30) || '#555555';
+
                 var marker = L.circleMarker(data.geometry.coordinates.reverse(), {
-                    color: '#333333',
-                    fillColor: '#ffffff',
-                    fillOpacity: 9,
-                    radius: '5'
+                    color: borderColor,
+                    fillColor: fillColor,
+                    fillOpacity: 1,
+                    radius: '6'
                 });
+                marker.bindPopup(data.properties.text);
                 mapState.markerGroup.addLayer(marker);
             }
             mapState.markerGroup.addTo(mapState.map);
@@ -83,18 +101,48 @@ function getPoints(mapState) {
     });
 }
 
-function routeStyle(feature) {
-    return {
-        weight: 6,
-        opacity: DEFAULTS.ROUTE_COLOR_OPACITY,
-        color: feature.properties.color
+function createRouteStyleFunction(mapState) {
+    return function(feature) {
+        var style = {
+            weight: 6,
+            opacity: DEFAULTS.ROUTE_COLOR_OPACITY,
+            color: feature.properties.color,
+            lineCap: 'butt'
+        };
+        if(feature.properties.nombre.indexOf('Rural') > -1) {
+            style.dashArray = '10,4';
+        }
+        return style;
     };
 }
 
-function onEachRoute(feature, layer) {
-    layer.bindPopup(feature.properties.nombre);
-    layer.on("click", function() {
-        layer.bringToFront();
-        markerGroup.bringToFront();
-    });
+function createOnEachRouteFunction(mapState) {
+    return function(feature, layer) {
+        layer.bindPopup(feature.properties.nombre);
+        layer.on("click", function() {
+            layer.bringToFront();
+            mapState.markerGroup.bringToFront();
+        });
+    };
+}
+
+function getParam(name){
+    var paramKeyValPair = (new RegExp('[?&]' + encodeURIComponent(name) + '=([^&]*)')).exec(location.search);
+    if(paramKeyValPair) {
+        var decoded = decodeURIComponent(paramKeyValPair[1]);
+        if(decoded.indexOf('/') == (decoded.length - 1)) {
+            decoded = decoded.substring(0, decoded.length - 1);
+        }
+        return decoded;
+    }
+}
+
+function shadeColor(color, percent) {
+    var num = parseInt(color.slice(1),16);
+    var amt = Math.round(2.55 * percent);
+    var R = (num >> 16) + amt;
+    var B = (num >> 8 & 0x00FF) + amt;
+    var G = (num & 0x0000FF) + amt;
+    return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (B<255?B<1?0:B:255)*0x100 + (G<255?G<1?0:G:255))
+            .toString(16).slice(1);
 }

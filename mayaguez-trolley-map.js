@@ -25,8 +25,9 @@ var maya = (function () {
 
         tileLayer().addTo(mapState.map);
         getAllRoutes(mapState, function() {
-            mapState.map.fitBounds(mapState.routeGroup.getBounds());
-            getPoints(mapState);
+            getPoints(mapState, function() {
+                mapState.map.fitBounds(mapState.routeGroup.getBounds());
+            });
         });
     };
 
@@ -77,12 +78,12 @@ var maya = (function () {
                     mapState.stopGroup.bringToFront();
                 }
                 mapState.layerControl.addTo(mapState.map);
-                onComplete();
-            }
+            },
+            complete: onComplete
         });
     }
 
-    function getPoints(mapState) {
+    function getPoints(mapState, onComplete) {
         $.ajax('paradas.geojson', {
             contentType: 'application/json; charset=UTF-8',
             dataType: 'json',
@@ -107,7 +108,8 @@ var maya = (function () {
                     mapState.stopGroup.addLayer(marker);
                 }
                 mapState.stopGroup.addTo(mapState.map);
-            }
+            },
+            complete: onComplete
         });
     }
 

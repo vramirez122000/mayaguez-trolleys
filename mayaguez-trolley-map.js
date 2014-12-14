@@ -18,6 +18,7 @@ var maya = (function () {
             colors: {},
             stopGroup: L.featureGroup(),
             routeGroup: L.featureGroup(),
+            poiGroup: L.featureGroup(),
             layerControl: L.control.layers(null, {}, {position: 'topleft', collapsed: false}),
             map: createMap(),
             routes: routes
@@ -29,6 +30,7 @@ var maya = (function () {
                 mapState.map.fitBounds(mapState.routeGroup.getBounds());
             });
         });
+        getPois(mapState, function(){});
     };
 
     function createMap() {
@@ -108,6 +110,38 @@ var maya = (function () {
                     mapState.stopGroup.addLayer(marker);
                 }
                 mapState.stopGroup.addTo(mapState.map);
+            },
+            complete: onComplete
+        });
+    }
+
+    function getPois(mapState, onComplete) {
+        $.ajax('poi.geojson', {
+            contentType: 'application/json; charset=UTF-8',
+            dataType: 'json',
+            success: function (geojson) {
+                for (var i = 0; i < geojson.features.length; i++) {
+                    var data = geojson.features[i];
+
+                    var iconProps = {
+                        prefix: 'fa'
+                    };
+
+                    if(data.properties.color) {
+                        iconProps.markerColor = data.properties.color;
+                    }
+                    if(data.properties.icon) {
+                        iconProps.icon = data.properties.icon;
+                    }
+
+                    var marker = L.marker(data.geometry.coordinates.reverse(), {
+                        icon: L.AwesomeMarkers.icon(iconProps)
+                    });
+                    marker.bindPopup(data.properties.name);
+                    mapState.poiGroup.addLayer(marker);
+                }
+                //mapState.poiGroup.addTo(mapState.map);
+                mapState.layerControl.addOverlay(mapState.poiGroup, 'Puntos de Referencia');
             },
             complete: onComplete
         });

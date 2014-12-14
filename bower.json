@@ -1,0 +1,8 @@
+{
+  "name": "mayaguez-trolleys",
+  "version": "1.0.0",
+  "dependencies": {
+    "Leaflet.awesome-markers": "~2.0"
+  },
+  "devDependencies": {}
+}

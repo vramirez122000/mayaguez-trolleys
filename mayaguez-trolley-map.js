@@ -28,9 +28,9 @@ var maya = (function () {
         getAllRoutes(mapState, function() {
             getPoints(mapState, function() {
                 mapState.map.fitBounds(mapState.routeGroup.getBounds());
+                getPois(mapState, function(){});
             });
         });
-        getPois(mapState, function(){});
     };
 
     function createMap() {

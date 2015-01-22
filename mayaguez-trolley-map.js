@@ -103,9 +103,9 @@ var maya = (function () {
                     var marker = L.circleMarker(data.geometry.coordinates.reverse(), {
                         color: borderColor,
                         fillColor: fillColor,
-                        fillOpacity: 1,
-                        radius: '6'
+                        fillOpacity: 1
                     });
+                    marker.setRadius(+6); //warning hack!! force numeric
                     marker.bindPopup(data.properties.text);
                     mapState.stopGroup.addLayer(marker);
                 }

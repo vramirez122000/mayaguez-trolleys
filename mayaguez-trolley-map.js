@@ -16,7 +16,8 @@ var maya = (function () {
         var routes = param && param.split(',') || [];
         var mapState = {
             colors: {},
-            stopGroup: L.featureGroup(),
+            stopGroups: {},
+            routeLayers: {},
             routeGroup: L.featureGroup(),
             poiGroup: L.featureGroup(),
             layerControl: L.control.layers(null, {}, {position: 'topleft', collapsed: false}),
@@ -29,6 +30,24 @@ var maya = (function () {
             getPoints(mapState, function() {
                 mapState.map.fitBounds(mapState.routeGroup.getBounds());
                 getPois(mapState, function(){});
+                mapState.map.on('overlayadd', function(event) {
+                    var routeId = $(event.name).data('route-id');
+                    if(!routeId) {
+                        return;
+                    }
+                    if(!mapState.map.hasLayer(mapState.stopGroups[routeId])) {
+                        mapState.map.addLayer(mapState.stopGroups[routeId]);
+                    }
+                });
+                mapState.map.on('overlayremove', function(event) {
+                    var routeId = $(event.name).data('route-id');
+                    if(!routeId) {
+                        return;
+                    }
+                    if(mapState.map.hasLayer(mapState.stopGroups[routeId])) {
+                        mapState.map.removeLayer(mapState.stopGroups[routeId]);
+                    }
+                });
             });
         });
     };
@@ -67,17 +86,16 @@ var maya = (function () {
                     mapState.colors[data.id] = data.properties.color;
                     var lightColor = data.properties.color;
                     var darkColor = shadeColor(data.properties.color, -25);
-                    var routeLabel = '<span class="routeLabel" style="' +
+                    var routeLabel = '<span class="routeLabel" ' +
+                        'data-route-id="' + data.id + '" style="' +
                         'background-color: ' + lightColor +
                         '; text-shadow: -1px 0 ' + darkColor + ', 0 1px ' + darkColor + ', 1px 0 ' + darkColor + ', 0 -1px ' + darkColor +
                         '; border-color: ' + darkColor + '">' + (data.properties.nombre) + '</span>';
 
-                    mapState.routeGroup.addLayer(geoJsonLayer);
+                    mapState.routeGroup.addLayer(geoJsonLayer); //calc bounds
                     geoJsonLayer.addTo(mapState.map);
+                    mapState.routeLayers[data.id] = geoJsonLayer;
                     mapState.layerControl.addOverlay(geoJsonLayer, routeLabel);
-                }
-                if (mapState.stopGroup.getLayers().length) {
-                    mapState.stopGroup.bringToFront();
                 }
                 mapState.layerControl.addTo(mapState.map);
             },
@@ -92,11 +110,11 @@ var maya = (function () {
             success: function (geojson) {
                 for (var i = 0; i < geojson.features.length; i++) {
                     var data = geojson.features[i];
-                    var routeName = data.properties.route;
-                    if(!(routeName in mapState.colors)) {
+                    var routeId = data.properties.route;
+                    if(!(routeId in mapState.colors)) {
                         continue;
                     }
-                    var color = mapState.colors[routeName];
+                    var color = mapState.colors[routeId];
                     var fillColor = color || '#ffffff';
                     var borderColor = color && shadeColor(fillColor, -30) || '#555555';
 
@@ -107,9 +125,19 @@ var maya = (function () {
                     });
                     marker.setRadius(+6); //warning hack!! force numeric
                     marker.bindPopup(data.properties.text);
-                    mapState.stopGroup.addLayer(marker);
+
+                    if(!mapState.stopGroups[routeId]) {
+                        mapState.stopGroups[routeId] = L.featureGroup();
+                    }
+                    mapState.stopGroups[routeId].addLayer(marker);
                 }
-                mapState.stopGroup.addTo(mapState.map);
+
+                for (var stopGroup in mapState.stopGroups) {
+                    if (!mapState.stopGroups.hasOwnProperty(stopGroup)) {
+                        continue;
+                    }
+                    mapState.map.addLayer(mapState.stopGroups[stopGroup]);
+                }
             },
             complete: onComplete
         });
@@ -155,7 +183,7 @@ var maya = (function () {
                 color: feature.properties.color,
                 lineCap: 'butt'
             };
-            if (feature.properties.nombre.indexOf('Rural') > -1) {
+            if (feature.id.indexOf('RU') > -1) {
                 style.dashArray = '10,4';
             }
             return style;
@@ -167,7 +195,7 @@ var maya = (function () {
             layer.bindPopup(feature.properties.nombre);
             layer.on("click", function () {
                 layer.bringToFront();
-                mapState.stopGroup.bringToFront();
+                mapState.stopGroups[feature.id].bringToFront();
             });
         };
     }

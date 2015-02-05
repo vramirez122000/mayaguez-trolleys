@@ -169,7 +169,7 @@ var maya = (function () {
                     mapState.poiGroup.addLayer(marker);
                 }
                 //mapState.poiGroup.addTo(mapState.map);
-                mapState.layerControl.addOverlay(mapState.poiGroup, 'Puntos de Referencia');
+                mapState.layerControl.addOverlay(mapState.poiGroup, 'Puntos de Inter&eacute;s');
             },
             complete: onComplete
         });

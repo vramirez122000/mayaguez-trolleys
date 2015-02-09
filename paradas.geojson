@@ -10,7 +10,7 @@
 { "type": "Feature", "properties": { "route": "RU5", "text": "R102-4" }, "geometry": { "type": "Point", "coordinates": [ -67.166245, 18.184526 ] } },
 { "type": "Feature", "properties": { "route": "RU5", "text": "R102-2" }, "geometry": { "type": "Point", "coordinates": [ -67.154388, 18.196476 ] } },
 { "type": "Feature", "properties": { "route": "RU5", "text": "R102-3" }, "geometry": { "type": "Point", "coordinates": [ -67.173127, 18.175915 ] } },
-{ "type": "Feature", "properties": { "route": "RU5", "text": "R102-1" }, "geometry": { "type": "Point", "coordinates": [ -67.15279, 18.204026 ] } },
+{ "type": "Feature", "properties": { "route": "RU5", "text": "R102-1" }, "geometry": { "type": "Point", "coordinates": [ -67.152519, 18.204045 ] } },
 { "type": "Feature", "properties": { "route": "RU4", "text": "RR348-8" }, "geometry": { "type": "Point", "coordinates": [ -67.090137, 18.162398 ] } },
 { "type": "Feature", "properties": { "route": "RU4", "text": "RR348-6" }, "geometry": { "type": "Point", "coordinates": [ -67.109162, 18.170276 ] } },
 { "type": "Feature", "properties": { "route": "RU4", "text": "RR348-2" }, "geometry": { "type": "Point", "coordinates": [ -67.134459, 18.183434 ] } },
